@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -702,6 +701,7 @@ const gradeRates={RECRUIT:55,REAVER:25,HARBINGER:12,ARCHSLAYER:6,PRIMARCH:1.9999
 const dataKey="sod_gacha_v3";
 let state=JSON.parse(localStorage.getItem(dataKey)||"null")||{pulls:0,pity:0,counts:{},auto:false};
 let autoTimer=null;
+let gyun10Auto=false;
 
 function save(){localStorage.setItem(dataKey,JSON.stringify(state))}
 function gradeClass(g){return g==="ARCHSLAYER"?"arch":g==="PRIMARCH"?"prim":g==="SECRET"?"secret":g.toLowerCase()}
@@ -754,6 +754,7 @@ function soundGrade(g){
  else {[110,220,330,660,1320].forEach((f,i)=>playTone(f,.55,"square",.035,i*.13))}
 }
 let secretResumeAuto=false;
+let secretResumeGyun10=false;
 let secretFinish=null;
 let secretTimer=null;
 function playSecretCutscene(onFinish){
@@ -792,7 +793,8 @@ function playSecretCutscene(onFinish){
      secretResumeAuto=false; state.auto=true;
      document.getElementById("autoBtn").textContent="AUTO ROLL : ON";
      document.getElementById("autoBtn").classList.add("on");
-     autoTimer=setInterval(()=>{if(state.auto)roll(1)},900);
+     gyun10Auto=secretResumeGyun10;
+    autoTimer=setInterval(()=>{if(state.auto)roll(gyun10Auto?10:1)},gyun10Auto?2200:900);
    }
  };
  secretFinish=finish;
@@ -870,23 +872,35 @@ function showResults(results,best){
 function closeModal(){document.getElementById("modal").classList.remove("show")}
 function toggleAuto(){
  if(autoTimer){stopAuto();return}
-
+ startAutoMode(false);
+}
+function startAutoMode(useTenPull){
+ if(autoTimer)stopAuto();
+ gyun10Auto=!!useTenPull;
  state.auto=true;
- document.getElementById("autoBtn").textContent="AUTO ROLL : ON";
+ document.getElementById("autoBtn").textContent=gyun10Auto?"AUTO ROLL : ON · 10X":"AUTO ROLL : ON";
  document.getElementById("autoBtn").classList.add("on");
-
- // 첫 뽑기를 즉시 실행하고, 이후 500ms마다 계속 뽑는다.
- // 기존 코드는 roll() 안에서 AUTO를 다시 꺼버려 첫 1회에서 멈추는 문제가 있었다.
- roll(1);
+ const amount=gyun10Auto?10:1;
+ const delay=gyun10Auto?2200:900;
+ roll(amount);
  autoTimer=setInterval(()=>{
-   if(state.auto) roll(1);
- },500);
+   if(state.auto) roll(amount);
+ },delay);
 }
 function stopAuto(updateButton=true){
  if(autoTimer){clearInterval(autoTimer);autoTimer=null}
  state.auto=false;
+ gyun10Auto=false;
  if(updateButton){document.getElementById("autoBtn").textContent="AUTO ROLL : OFF";document.getElementById("autoBtn").classList.remove("on")}
 }
+
+// ===== 숨겨진 개발자 콘솔 기능 =====
+// 사용법을 아는 사람만 실행할 수 있는 10연속 AUTO ROLL.
+// 브라우저 개발자 콘솔에서 gyun_is_best() 를 실행하면 된다.
+window.gyun_is_best=function(){
+  startAutoMode(true);
+  console.log("[SOD] gyun_is_best 활성화: 10연차 AUTO ROLL");
+};
 function resetData(){
  stopAuto();if(confirm("SOD 기록소의 모든 도감을 삭제합니까?")){
    state={pulls:0,pity:0,counts:{},auto:false};save();update();
@@ -895,44 +909,6 @@ function resetData(){
 }
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 update();
-</script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
 </script>
 </body>
 </html>
